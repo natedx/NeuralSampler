@@ -20,17 +20,26 @@ define a model to use then use it in model_launch
 
 # convolutionnal, 2 layers. Supposed to be good on images but is extremely slow
 def convolutionnal_autoencod(nb_buffs):
-    input_img_ce = Input(shape=(1, 4*nb_buffs, 256))
+    input = Input(shape=(1, 4*nb_buffs, 256))
 
-    x_ce = Conv2D(4, (3, 3), activation='relu', padding='same', data_format='channels_first')(input_img_ce)
-    encoded_ce = MaxPooling2D((4, 4), padding='same', data_format='channels_first')(x_ce)
-    x_ce = UpSampling2D((4, 4), data_format='channels_first')(encoded_ce)
-    decoded_ce = Conv2D(1, (3, 3), activation='sigmoid', padding='same', data_format='channels_first')(x_ce)
+    x = Conv2D(16, (3, 3), activation='relu', padding='same', data_format='channels_first')(input)
+    x = MaxPooling2D((2, 2), padding='same', data_format='channels_first')(x)
+    x = Conv2D(8, (3, 3), activation='relu', padding='same', data_format='channels_first')(x)
+    x = MaxPooling2D((2, 2), padding='same', data_format='channels_first')(x)
+    x = Conv2D(8, (3, 3), activation='relu', padding='same', data_format='channels_first')(x)
+    encoded = MaxPooling2D((2, 2), padding='same', data_format='channels_first')(x)
 
-    autoencoder_ce = Model(input_img_ce, decoded_ce)
-    encod_ce = Model(input_img_ce, encoded_ce)
+    x = Conv2D(8, (3, 3), activation='relu', padding='same', data_format='channels_first')(encoded)
+    x = UpSampling2D((2, 2), data_format='channels_first')(x)
+    x = Conv2D(8, (3, 3), activation='relu', padding='same', data_format='channels_first')(x)
+    x = UpSampling2D((2, 2), data_format='channels_first')(x)
+    x = Conv2D(16, (3, 3), activation='relu', padding='same', data_format='channels_first')(x)
+    x = UpSampling2D((2, 2), data_format='channels_first')(x)
 
-    # decod_ce = Model(encoded_ce, decoded_ce)
+    decoded = Conv2D(1, (3, 3), activation='sigmoid', padding='same', data_format='channels_first')(x)
+
+    autoencoder_ce = Model(input, decoded)
+    encod_ce = Model(input, encoded)
 
     return autoencoder_ce, encod_ce
 

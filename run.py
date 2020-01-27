@@ -55,9 +55,11 @@ path_selected_bank = 'banks/bank_percssize=511nb=50.npy'
 bank = bkc.load_solid_bank(path_selected_bank)
 print('----------- LOADED')
 
-plt.matshow(bank[0,0], cmap="magma")
-
-plt.show()
+# Print the first image of the data bank
+for i in range(2):
+    plt.matshow(bank[i,0], cmap="magma")
+    plt.colorbar()
+    plt.show()
 
 # __________________________________________________________________________________learning
 
@@ -77,7 +79,7 @@ image_test = np.array(bank[selector:])
 autoencoder_ce, encod_ce = mlg.convolutionnal_autoencod(nb_buffs)
 
 # actual learning
-nb_epochs =5
+nb_epochs =50
 mlg.model_launch(image_train, image_test, autoencoder_ce, encod_ce, nb_epochs)
 
 
@@ -93,10 +95,23 @@ def test_audio(path_out):
         test_image_learn = np.array([image_train[i]])
         test_image = np.array(image_train[i][0])
         predicted_image = autoencoder_ce.predict(test_image_learn)[0][0]
+
+        avg = np.average(predicted_image)
+        pmin = np.amin(predicted_image)
+        pmax = np.amax(predicted_image)
+        predicted_image = (predicted_image - avg)*50
+
         print(predicted_image.shape)
         print(test_image.shape)
         lrec = sdo.reconstruct_image(test_image, nb_buffs, path_out, 'test' + str(i))
         rrec = sdo.reconstruct_image(predicted_image, nb_buffs, path_out, 'learned' + str(i))
+
+        # Viewing function
+        if i < 2 :
+            plt.matshow(predicted_image, cmap="magma")
+            plt.colorbar()
+            plt.show()
+
     print('------------TEST OK')
 
 
