@@ -68,7 +68,7 @@ def reconstruct_test(left, right, path, filename):
     :return: void
     '''
     path_full = path + '/' + filename + '.wav'
-    sizer = 2 ** 31
+    sizer = 2 ** 29
     sound_recomposed_stereo = [[int(left[i] * sizer), int(right[i] * sizer)] for i in range(len(left))]
     sf.write(path_full, sound_recomposed_stereo, 44100)
 

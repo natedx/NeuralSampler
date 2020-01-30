@@ -55,14 +55,19 @@ path_selected_bank = 'banks/bank_percssize=511nb=50.npy'
 bank = bkc.load_solid_bank(path_selected_bank)
 print('----------- LOADED')
 
-# Print the first image of the data bank
-for i in range(2):
-    plt.matshow(bank[i,0], cmap="magma")
-    plt.colorbar()
-    plt.show()
+
 
 # __________________________________________________________________________________learning
 
+# creating function that splits banks into 4 subsets.
+def splitter(db, nb_buffs):
+    split = []
+    for i in range(4):
+        split.append(db[:,:,i*nb_buffs:(i+1)*nb_buffs])
+    return split
+
+def merger(a):
+    return np.concatenate((a[0], a[1], a[2], a[3]), axis=2)
 
 # you can load several banks to learn on more data
 
@@ -72,15 +77,41 @@ from math import floor
 nb_images = len(bank)
 print(sys.getsizeof(bank))
 selector = floor(nb_images * 0.8)
-image_train = np.array(bank[:selector])
-image_test = np.array(bank[selector:])
+
+
+# image_train = np.abs(bank[:selector])
+# image_test = np.abs(bank[selector:])
+
+image_train = (bank[:selector]+1)/2
+image_test = (bank[selector:]+1)/2
+
+image_test_bis = bank[:selector]
+image_train_bis = bank[selector:]
+
+# image_train = bank[:selector]
+# image_test = bank[selector:]
+
+
+image_train_split = splitter(image_train, 50)
+image_test_split = splitter(image_test, 50)
+
+# # Print the first image of the data bank
+# for i in range(10):
+#     plt.matshow(image_test[i,0])
+#     plt.colorbar()
+#     plt.show()
+
 
 # use the selected encoder
+# please note that the autoencoder in mlg now takes 4 inputs and gives back 4 outputs
 autoencoder_ce, encod_ce = mlg.convolutionnal_autoencod(nb_buffs)
 
+
+
+
 # actual learning
-nb_epochs =50
-mlg.model_launch(image_train, image_test, autoencoder_ce, encod_ce, nb_epochs)
+nb_epochs = 10
+mlg.model_launch(image_train_split, image_test_split, autoencoder_ce, encod_ce, nb_epochs)
 
 
 # __________________________________________________________________________________test_learning quality
@@ -89,28 +120,40 @@ mlg.model_launch(image_train, image_test, autoencoder_ce, encod_ce, nb_epochs)
 path_out = './results'
 samples = [i for i in range(20)]
 
+image_test_split = np.array(image_test_split)
+
 
 def test_audio(path_out):
     for i in samples:
-        test_image_learn = np.array([image_train[i]])
-        test_image = np.array(image_train[i][0])
-        predicted_image = autoencoder_ce.predict(test_image_learn)[0][0]
+        test_image_learn = np.expand_dims(image_test_split[:,i], 1)
+        test_image = np.array(image_test_bis[i][0])
+        predicted_image = autoencoder_ce.predict(list(test_image_learn))
 
-        avg = np.average(predicted_image)
-        pmin = np.amin(predicted_image)
-        pmax = np.amax(predicted_image)
-        predicted_image = (predicted_image - avg)*50
+        for j in range(4):
+            predicted_image[j] = (predicted_image[j] - np.average(predicted_image[j]))*20
+
+        predicted_image = merger(predicted_image)[0][0]
+
+        # avg = np.average(predicted_image)
+        # pmin = np.amin(predicted_image)
+        # pmax = np.amax(predicted_image)
+        # predicted_image = (predicted_image - avg)*50
+
+        # Viewing function
+        if i < 10 and i%2 == 0:
+            plt.matshow(predicted_image)
+            plt.colorbar()
+            plt.show()
+            plt.matshow(test_image)
+            plt.colorbar()
+            plt.show()
 
         print(predicted_image.shape)
         print(test_image.shape)
         lrec = sdo.reconstruct_image(test_image, nb_buffs, path_out, 'test' + str(i))
         rrec = sdo.reconstruct_image(predicted_image, nb_buffs, path_out, 'learned' + str(i))
 
-        # Viewing function
-        if i < 2 :
-            plt.matshow(predicted_image, cmap="magma")
-            plt.colorbar()
-            plt.show()
+
 
     print('------------TEST OK')
 
